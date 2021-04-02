@@ -4,8 +4,11 @@
 #   - Push configs to ArgoCD to automatically configure itself from git repo
 #
 #
-
 CONTEXT ?= $(shell kubectl config current-context)
+
+.PHONY: minibang
+minibang: create_cluster set_config install_argocd expose_argocd
+	@echo "🐙 Cluster Created & Configured!"
 
 # Note: --port 8080:80@loadbalancer means anything hitting 
 # host port 8080 gets sent to container at port 80.
@@ -13,13 +16,15 @@ CONTEXT ?= $(shell kubectl config current-context)
 .PHONY: create_cluster
 create_cluster:
 	@echo "🐙 Creating Cluster"
-	k3d cluster create microverse \
+	k3d cluster create miniverse \
 		--api-port 6550 \
 		--servers 1 \
 		--agents 3 \
 		--port 8080:80@loadbalancer \
 		--wait
-		# --volume $(pwd)/sample:/src@all --wait
+
+.PHONY: set_config
+set_config:
 	@echo "🐙 Setting Kubeconfig"
 	k3d kubeconfig write miniverse # creates ~/.k3d/kubeconfig-miniverse.yaml
 	cp ~/.kube/config ~/.kube/config.backup # I don't merge to avoid mishaps
@@ -29,17 +34,20 @@ create_cluster:
 .PHONY: delete_cluster
 delete_cluster:
 	@echo "💥 Deleting Cluster"
-	k3d cluster delete microverse
+	@echo -n "Delete $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
+	k3d cluster delete miniverse
+
 
 # Requires install for argocd cli 
-# Mac: brew install argocd
+# 	Mac: brew install argocd
 .PHONY: install_argocd
 install_argocd:
 	@echo "🐙 Installing Argo"
 	@echo -n "Install Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl create namespace argocd
-	kubectl apply -n argocd \
-		-f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	# TODO: dynamicall get & patch argo-server deployment manifest
+	# wget -P manifest https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+	kubectl apply -n argocd -f manifest/install.yaml
 
 
 # Changing argocd-server to type LoadBalancer
@@ -47,8 +55,7 @@ install_argocd:
 expose_argocd:
 	@echo "🐙 Exposing Argo"
 	@echo -n "Expose Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
-	kubectl patch svc argocd-server -n \
-		argocd -p '{"spec": {"type": "LoadBalancer"}}'
+	kubectl apply -n argocd -f manifest/argo-ingress.yaml
 
 
 .PHONY: create_ingress_cert
