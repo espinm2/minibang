@@ -7,7 +7,7 @@
 CONTEXT ?= $(shell kubectl config current-context)
 
 .PHONY: minibang
-minibang: create_cluster set_config install_argocd expose_argocd configure_auth_argocd
+minibang: create_cluster set_config install_argocd expose_argocd configure_auth_argocd configure_app_argocd
 	@echo "🐙 Cluster Created & Configured!"
 
 # Note: --port 8080:80@loadbalancer means anything hitting 
