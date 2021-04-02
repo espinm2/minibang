@@ -45,9 +45,7 @@ install_argocd:
 	@echo "🐙 Installing Argo"
 	@echo -n "Install Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl create namespace argocd
-	# TODO: dynamicall get & patch argo-server deployment manifest
-	# wget -P manifest https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-	kubectl apply -n argocd -f manifest/install.yaml
+	kubectl apply -n argocd -f manifest/argo-install.yaml
 
 
 # Changing argocd-server to type LoadBalancer
@@ -56,6 +54,13 @@ expose_argocd:
 	@echo "🐙 Exposing Argo"
 	@echo -n "Expose Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl apply -n argocd -f manifest/argo-ingress.yaml
+	@echo "Argo reachable at http://localhost:8080/argocd"
+	@echo "Username:\nadmin"
+	@echo "Password:"
+	@kubectl get pods \
+		-n argocd \
+		-l app.kubernetes.io/name=argocd-server \
+		-o name | cut -d'/' -f 2
 
 
 .PHONY: create_ingress_cert
