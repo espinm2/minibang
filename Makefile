@@ -7,7 +7,7 @@
 CONTEXT ?= $(shell kubectl config current-context)
 
 .PHONY: minibang
-minibang: create_cluster set_config install_argocd expose_argocd
+minibang: create_cluster set_config install_argocd expose_argocd configure_auth_argocd
 	@echo "🐙 Cluster Created & Configured!"
 
 # Note: --port 8080:80@loadbalancer means anything hitting 
@@ -54,6 +54,7 @@ expose_argocd:
 	@echo "🐙 Exposing Argo"
 	@echo -n "Expose Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl apply -n argocd -f manifest/argo-ingress.yaml
+	@echo -n "I understand I will not be able to see root creds again [y/N] " && read ans && [ $${ans:-N} = y ]
 	@echo "Argo reachable at http://localhost:8080/argocd"
 	@echo "Username:\nadmin"
 	@echo "Password:"
@@ -61,6 +62,22 @@ expose_argocd:
 		-n argocd \
 		-l app.kubernetes.io/name=argocd-server \
 		-o name | cut -d'/' -f 2
+
+.PHONY: configure_auth_argocd
+configure_auth_argocd:
+	@echo "🐙 Configuring github OAuth for ArgoCD"
+	sh scripts/argo-cm-creator.sh
+	@kubectl apply -n argocd -f manifest/argo-cm.yaml
+	@echo "Configured!"
+	@echo "Argo reachable at http://localhost:8080/argocd"
+	@echo "Use Github creds to sign into argo."
+
+.PHONY: configure_app_argocd
+configure_app_argocd:
+	@echo "🐙 Configuring espinm2/miniverse as app in ArgoCD"
+	sh scripts/argo-app-creator.sh
+	@kubectl apply -n argocd -f manifest/argo-app.yaml
+	@echo "Configured!"
 
 
 .PHONY: create_ingress_cert
