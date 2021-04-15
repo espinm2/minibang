@@ -54,10 +54,10 @@ expose_argocd:
 	@echo "🐙 Exposing Argo"
 	@echo -n "Expose Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl apply -n argocd -f manifest/argo-ingress.yaml
-	@echo -n "I understand I will not be able to see root creds again [y/N] " && read ans && [ $${ans:-N} = y ]
 	@echo "Argo reachable at http://localhost:8080/argocd"
 	@echo "Username:\nadmin"
 	@echo "Password:"
+	@echo -n "I understand I will not be able to see root creds again [y/N] " && read ans && [ $${ans:-N} = y ]
 	@kubectl get pods \
 		-n argocd \
 		-l app.kubernetes.io/name=argocd-server \
