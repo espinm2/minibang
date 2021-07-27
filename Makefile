@@ -1,14 +1,24 @@
-# Later List
-#   - Setup git repo with configs to install Istio
-#   - Create makefile target to create self-signed certs & upload to cluster
-#   - Push configs to ArgoCD to automatically configure itself from git repo
-#
-#
+
+SHELL=/bin/bash
 CONTEXT ?= $(shell kubectl config current-context)
 
 .PHONY: minibang
-minibang: create_cluster set_config install_argocd expose_argocd configure_auth_argocd configure_app_argocd
-	@echo "🐙 Cluster Created & Configured!"
+minibang: 
+	make delete_cluster
+	make create_cluster
+	make set_config
+	make install_argocd
+	make expose_argocd
+	make configure_auth_argocd
+	make configure_app_argocd
+	make install_istio
+	@echo "🎉 Cluster Created"
+	@echo "👉 Argo reachable at http://localhost:8080/argocd"
+
+# Wait until all pods ready
+.PHONY: wait_until_ready
+wait_until_ready:
+	while [[ $$(kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.phase != "Running") | .metadata.namespace + "/" + .metadata.name' | wc -l) -ne 0 ]]; do echo "Waiting for pods to stablize." && sleep 10; done
 
 # Note: --port 8080:80@loadbalancer means anything hitting 
 # host port 8080 gets sent to container at port 80.
@@ -19,9 +29,11 @@ create_cluster:
 	k3d cluster create miniverse \
 		--api-port 6550 \
 		--servers 1 \
-		--agents 3 \
-		--port 8080:80@loadbalancer \
+		--agents 1 \
+		--port 80:80@loadbalancer \
+		--k3s-server-arg '--no-deploy=traefik' \
 		--wait
+	make wait_until_ready
 
 .PHONY: set_config
 set_config:
@@ -43,21 +55,19 @@ delete_cluster:
 .PHONY: install_argocd
 install_argocd:
 	@echo "🐙 Installing Argo"
-	@echo -n "Install Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl create namespace argocd
 	kubectl apply -n argocd -f manifest/argo-install.yaml
+	make wait_until_ready
 
 
-# Changing argocd-server to type LoadBalancer
+# Adding Ingress to ArgoCD
 .PHONY: expose_argocd
 expose_argocd:
 	@echo "🐙 Exposing Argo"
-	@echo -n "Expose Argo in $(CONTEXT) cluster? [y/N] " && read ans && [ $${ans:-N} = y ]
 	kubectl apply -n argocd -f manifest/argo-ingress.yaml
-	@echo "Argo reachable at http://localhost:8080/argocd"
-	@echo "Username:\nadmin"
+	@echo "👉 Argo admin creds below:"
+	@echo "Username: admin"
 	@echo "Password:"
-	@echo -n "I understand I will not be able to see root creds again [y/N] " && read ans && [ $${ans:-N} = y ]
 	@kubectl get pods \
 		-n argocd \
 		-l app.kubernetes.io/name=argocd-server \
@@ -68,6 +78,7 @@ configure_auth_argocd:
 	@echo "🐙 Configuring github OAuth for ArgoCD"
 	sh scripts/argo-cm-creator.sh
 	@kubectl apply -n argocd -f manifest/argo-cm.yaml
+	@kubectl apply -n argocd -f manifest/argo-rbac-cm.yaml
 	@echo "Configured!"
 	@echo "Argo reachable at http://localhost:8080/argocd"
 	@echo "Use Github creds to sign into argo."
@@ -79,6 +90,11 @@ configure_app_argocd:
 	@kubectl apply -n argocd -f manifest/argo-app.yaml
 	@echo "Configured!"
 
+.PHONY: install_istio
+install_istio:
+	@echo "⛵️ Installing Istio"
+	istioctl install -y
+	make wait_until_ready
 
 .PHONY: create_ingress_cert
 create_ingress_cert:
