@@ -9,9 +9,7 @@ minibang:
 	make set_config
 	make install_argocd
 	make expose_argocd
-	make configure_auth_argocd
 	make configure_app_argocd
-	make install_istio
 	@echo "🎉 Cluster Created"
 	@echo "👉 Argo reachable at http://localhost:8080/argocd"
 
