@@ -8,6 +8,7 @@ minibang:
 	make create_cluster
 	make set_config
 	make install_argocd
+	make configure_auth_argocd
 	make expose_argocd
 	make configure_app_argocd
 	@echo "🎉 Cluster Created"
@@ -55,6 +56,8 @@ install_argocd:
 	@echo "🐙 Installing Argo"
 	kubectl create namespace argocd
 	kubectl apply -n argocd -f manifest/argo-install.yaml
+	kubectl apply -n argocd -f manifest/argo-cm.yaml
+	kubectl apply -n argocd -f manifest/argo-rbac.yaml
 	make wait_until_ready
 
 
@@ -71,12 +74,12 @@ expose_argocd:
 		-l app.kubernetes.io/name=argocd-server \
 		-o name | cut -d'/' -f 2
 
+# TODO: Defunct as we now allow admin anonymous access
 .PHONY: configure_auth_argocd
 configure_auth_argocd:
 	@echo "🐙 Configuring github OAuth for ArgoCD"
 	sh scripts/argo-cm-creator.sh
-	@kubectl apply -n argocd -f manifest/argo-cm.yaml
-	@kubectl apply -n argocd -f manifest/argo-rbac-cm.yaml
+	@kubectl apply -n argocd -f manifest/argo-dex-cm.yaml
 	@echo "Configured!"
 	@echo "Argo reachable at http://localhost:8080/argocd"
 	@echo "Use Github creds to sign into argo."
@@ -84,7 +87,6 @@ configure_auth_argocd:
 .PHONY: configure_app_argocd
 configure_app_argocd:
 	@echo "🐙 Configuring espinm2/miniverse as app in ArgoCD"
-	sh scripts/argo-app-creator.sh
 	@kubectl apply -n argocd -f manifest/argo-app.yaml
 	@echo "Configured!"
 

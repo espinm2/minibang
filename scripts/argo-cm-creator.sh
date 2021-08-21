@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Skip creation of configmap if already defined
-FILE=manifest/argo-cm.yaml
+FILE=manifest/argo-dex-cm.yaml
 if test -f "$FILE"; then
-    echo "manifest/argo-cm.yaml already exist, skipping creation."
+    echo "manifest/argo-dex-cm.yaml already exist, skipping creation."
     exit 0
 fi
 
@@ -21,7 +21,7 @@ echo -n Client secret:
 read CLIENT_SECRET
 
 
-cat > manifest/argo-cm.yaml << EOF
+cat > manifest/argo-dex-cm.yaml << EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
