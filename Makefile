@@ -8,20 +8,22 @@ minibang:
 	make create_cluster
 	make set_config
 	make install_argocd
-	make configure_auth_argocd
 	make expose_argocd
 	make configure_app_argocd
 	@echo "🎉 Cluster Created"
 	@echo "👉 Argo reachable at http://localhost:8080/argocd"
 
+
+# Requires jq
+# 	Mac: brew install jq
 # Wait until all pods ready
 .PHONY: wait_until_ready
 wait_until_ready:
-	while [[ $$(kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.status.phase != "Running") | .metadata.namespace + "/" + .metadata.name' | wc -l) -ne 0 ]]; do echo "Waiting for pods to stablize." && sleep 10; done
+	while [[ $$(kubectl get pods --all-namespaces -o json | jq -r '.items[] | select((.status.phase != "Running") and (.status.phase != "Succeeded")) | .metadata.namespace + "/" + .metadata.name' | wc -l) -ne 0 ]]; do echo "Waiting for pods to stablize." && sleep 10; done
 
-# Note: --port 8080:80@loadbalancer means anything hitting 
-# host port 8080 gets sent to container at port 80.
-# Given it matches nodefilter loadbalancer.
+
+# Requires k3d 
+# 	Mac: brew install k3d
 .PHONY: create_cluster
 create_cluster:
 	@echo "🐙 Creating Cluster"
@@ -29,10 +31,11 @@ create_cluster:
 		--api-port 6550 \
 		--servers 1 \
 		--agents 1 \
-		--port 80:80@loadbalancer \
-		--k3s-server-arg '--no-deploy=traefik' \
+		--port 8080:80@loadbalancer \
+		--port 8443:443@loadbalancer \
 		--wait
 	make wait_until_ready
+
 
 .PHONY: set_config
 set_config:
@@ -55,9 +58,9 @@ delete_cluster:
 install_argocd:
 	@echo "🐙 Installing Argo"
 	kubectl create namespace argocd
-	kubectl apply -n argocd -f manifest/argo-install.yaml
+	kubectl apply -n argocd -f manifest/argo-install-v2.yaml
 	kubectl apply -n argocd -f manifest/argo-cm.yaml
-	kubectl apply -n argocd -f manifest/argo-rbac.yaml
+	kubectl apply -n argocd -f manifest/argo-rbac-cm.yaml
 	make wait_until_ready
 
 
@@ -74,6 +77,7 @@ expose_argocd:
 		-l app.kubernetes.io/name=argocd-server \
 		-o name | cut -d'/' -f 2
 
+
 # TODO: Defunct as we now allow admin anonymous access
 .PHONY: configure_auth_argocd
 configure_auth_argocd:
@@ -84,17 +88,20 @@ configure_auth_argocd:
 	@echo "Argo reachable at http://localhost:8080/argocd"
 	@echo "Use Github creds to sign into argo."
 
+
 .PHONY: configure_app_argocd
 configure_app_argocd:
 	@echo "🐙 Configuring espinm2/miniverse as app in ArgoCD"
 	@kubectl apply -n argocd -f manifest/argo-app.yaml
 	@echo "Configured!"
 
+
 .PHONY: install_istio
 install_istio:
 	@echo "⛵️ Installing Istio"
 	istioctl install -y
 	make wait_until_ready
+
 
 .PHONY: create_ingress_cert
 create_ingress_cert:

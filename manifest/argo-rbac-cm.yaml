@@ -6,4 +6,3 @@ metadata:
   namespace: argocd
 data:
   policy.default: role:admin
-  users.anonymous.enabled: "true"
