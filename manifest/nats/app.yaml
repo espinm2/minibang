@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: miniverse-nats
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: nats
+    repoURL: https://github.com/espinm2/miniverse.git
+    targetRevision: HEAD
+  syncPolicy: {}

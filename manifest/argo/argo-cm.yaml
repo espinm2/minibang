@@ -13,7 +13,12 @@ data:
       insecure: true
       insecureIgnoreHostKey: true
       type: git
-    - url: https://github.com/helm/charts.git
+    - url: https://github.com/nats-io/k8s.git
       insecure: true
       insecureIgnoreHostKey: true
       type: git
+      # Untested
+    - url: https://dapr.github.io/helm-charts/
+      insecure: true
+      insecureIgnoreHostKey: true
+      type: helm

@@ -4,12 +4,11 @@ CONTEXT ?= $(shell kubectl config current-context)
 
 .PHONY: minibang
 minibang: 
-	make delete_cluster
 	make create_cluster
 	make set_config
 	make install_argocd
 	make expose_argocd
-	make configure_app_argocd
+	make configure_apps_argocd
 	@echo "🎉 Cluster Created"
 	@echo "👉 Argo reachable at http://localhost:8080/argocd"
 
@@ -58,9 +57,9 @@ delete_cluster:
 install_argocd:
 	@echo "🐙 Installing Argo"
 	kubectl create namespace argocd
-	kubectl apply -n argocd -f manifest/argo-install-v2.yaml
-	kubectl apply -n argocd -f manifest/argo-cm.yaml
-	kubectl apply -n argocd -f manifest/argo-rbac-cm.yaml
+	kubectl apply -n argocd -f manifest/argo/argo-install-v2.yaml
+	kubectl apply -n argocd -f manifest/argo/argo-cm.yaml
+	kubectl apply -n argocd -f manifest/argo/argo-rbac-cm.yaml
 	make wait_until_ready
 
 
@@ -68,7 +67,7 @@ install_argocd:
 .PHONY: expose_argocd
 expose_argocd:
 	@echo "🐙 Exposing Argo"
-	kubectl apply -n argocd -f manifest/argo-ingress.yaml
+	kubectl apply -n argocd -f manifest/argo/argo-ingress.yaml
 	@echo "👉 Argo admin creds below:"
 	@echo "Username: admin"
 	@echo "Password:"
@@ -78,21 +77,12 @@ expose_argocd:
 		-o name | cut -d'/' -f 2
 
 
-# TODO: Defunct as we now allow admin anonymous access
-.PHONY: configure_auth_argocd
-configure_auth_argocd:
-	@echo "🐙 Configuring github OAuth for ArgoCD"
-	sh scripts/argo-cm-creator.sh
-	@kubectl apply -n argocd -f manifest/argo-dex-cm.yaml
-	@echo "Configured!"
-	@echo "Argo reachable at http://localhost:8080/argocd"
-	@echo "Use Github creds to sign into argo."
-
-
-.PHONY: configure_app_argocd
-configure_app_argocd:
-	@echo "🐙 Configuring espinm2/miniverse as app in ArgoCD"
-	@kubectl apply -n argocd -f manifest/argo-app.yaml
+.PHONY: configure_apps_argocd
+configure_apps_argocd:
+	@echo "🐙 Configuring all apps in ArgoCD"
+	@kubectl apply -n argocd -f manifest/dapr/app.yaml
+	@kubectl apply -n argocd -f manifest/guestbook/app.yaml
+	@kubectl apply -n argocd -f manifest/nats/app.yaml	
 	@echo "Configured!"
 
 
