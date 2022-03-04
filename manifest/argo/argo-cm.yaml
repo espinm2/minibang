@@ -17,8 +17,11 @@ data:
       insecure: true
       insecureIgnoreHostKey: true
       type: git
-      # Untested
     - url: https://dapr.github.io/helm-charts/
+      insecure: true
+      insecureIgnoreHostKey: true
+      type: helm
+    - url: https://istio-release.storage.googleapis.com/charts
       insecure: true
       insecureIgnoreHostKey: true
       type: helm
