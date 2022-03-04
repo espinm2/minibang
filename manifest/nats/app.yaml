@@ -6,9 +6,12 @@ metadata:
 spec:
   destination:
     server: https://kubernetes.default.svc
+    namespace: nats
   project: default
   source:
     path: nats
     repoURL: https://github.com/espinm2/miniverse.git
     targetRevision: HEAD
-  syncPolicy: {}
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
