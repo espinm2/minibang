@@ -29,7 +29,7 @@ create_cluster:
 	k3d cluster create miniverse \
 		--api-port 6550 \
 		--servers 1 \
-		--agents 1 \
+		--agents 3 \
 		--port 8080:80@loadbalancer \
 		--port 8443:443@loadbalancer \
 		--wait
@@ -51,8 +51,6 @@ delete_cluster:
 	k3d cluster delete miniverse
 
 
-# Requires install for argocd cli 
-# 	Mac: brew install argocd
 .PHONY: install_argocd
 install_argocd:
 	@echo "🐙 Installing Argo"
@@ -80,19 +78,3 @@ configure_apps_argocd:
 	@kubectl apply -n argocd -f manifest/istio/gateway/app.yaml	
 	@kubectl apply -n argocd -f manifest/istio/istiod/app.yaml	
 	@echo "Configured!"
-
-
-.PHONY: install_istio
-install_istio:
-	@echo "⛵️ Installing Istio"
-	istioctl install -y
-	make wait_until_ready
-
-
-.PHONY: create_ingress_cert
-create_ingress_cert:
-	@echo "⛵️ Creating Istio Ingress Cert"
-	mkdir -p certs/istio
-	openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
-		-subj "/C=US/ST=MA/L=SOMERVILLE/O=NONE/CN=localhost" \
-		-keyout certs/istio/selfsigned.key  -out /certs/istio/selfsigned.crt
