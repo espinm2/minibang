@@ -68,13 +68,6 @@ install_argocd:
 expose_argocd:
 	@echo "🐙 Exposing Argo"
 	kubectl apply -n argocd -f manifest/argo/argo-ingress.yaml
-	@echo "👉 Argo admin creds below:"
-	@echo "Username: admin"
-	@echo "Password:"
-	@kubectl get pods \
-		-n argocd \
-		-l app.kubernetes.io/name=argocd-server \
-		-o name | cut -d'/' -f 2
 
 
 .PHONY: configure_apps_argocd
