@@ -76,6 +76,9 @@ configure_apps_argocd:
 	@kubectl apply -n argocd -f manifest/dapr/app.yaml
 	@kubectl apply -n argocd -f manifest/guestbook/app.yaml
 	@kubectl apply -n argocd -f manifest/nats/app.yaml	
+	@kubectl apply -n argocd -f manifest/istio/base/app.yaml	
+	@kubectl apply -n argocd -f manifest/istio/gateway/app.yaml	
+	@kubectl apply -n argocd -f manifest/istio/istiod/app.yaml	
 	@echo "Configured!"
 
 
